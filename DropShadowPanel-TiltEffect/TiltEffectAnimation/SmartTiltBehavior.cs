@@ -9,8 +9,8 @@ using System.Windows.Media.Media3D;
 namespace DropShadowPanel_TiltEffect.TiltEffectAnimation;
 
 /// <summary>
-/// Inteligentní tilt behavior, který automaticky volí nejlepší přístup
-/// podle typu elementu a jeho vlastností.
+/// Intelligent tilt behavior that automatically chooses the best approach
+/// based on the element type and its properties.
 /// </summary>
 public static class SmartTiltBehavior
 {
@@ -51,27 +51,27 @@ public static class SmartTiltBehavior
     public enum TiltStrategy
     {
         /// <summary>
-        /// Automaticky zvolit nejlepší strategii
+        /// Automatically choose the best strategy
         /// </summary>
         Auto,
 
         /// <summary>
-        /// Stack Overflow přístup - pevné rozměry s přímým efektem
+        /// Stack Overflow approach — fixed dimensions with a direct effect
         /// </summary>
         FixedSize,
 
         /// <summary>
-        /// Oddělené vrstvy - shadow a content zvlášť
+        /// Separated layers — shadow and content separately
         /// </summary>
         LayeredShadow,
 
         /// <summary>
-        /// Planerator s kompenzací bounds
+        /// Planerator with bounds compensation
         /// </summary>
         CompensatedPlanerator,
 
         /// <summary>
-        /// Bez stínu - pouze tilt
+        /// No shadow — tilt only
         /// </summary>
         NoShadow
     }
@@ -130,7 +130,7 @@ public static class SmartTiltBehavior
         if (strategy == TiltStrategy.Auto)
         {
             strategy = DetermineOptimalStrategy(element);
-            // Uložit zvolenou strategii pro debugging
+            // Store chosen strategy for debugging
             element.Tag = $"SmartTilt:{strategy}";
         }
 
@@ -156,39 +156,39 @@ public static class SmartTiltBehavior
 
     private static TiltStrategy DetermineOptimalStrategy(FrameworkElement element)
     {
-        // Analyzovat element a jeho vlastnosti
+        // Analyze the element and its properties
         bool hasFixedSize = !double.IsNaN(element.Width) && !double.IsNaN(element.Height);
         bool hasDropShadow = element.Effect is DropShadowEffect;
         bool isButton = element is Button || element is ToggleButton;
         bool isInItemsControl = ItemsControl.ItemsControlFromItemContainer(element) != null;
         bool hasComplexContent = VisualTreeHelper.GetChildrenCount(element) > 3;
 
-        // Rozhodovací logika
+        // Decision logic
         if (hasFixedSize && !hasComplexContent)
         {
-            // Pevné rozměry a jednoduchý obsah -> Stack Overflow přístup
+            // Fixed size and simple content -> Stack Overflow approach
             return TiltStrategy.FixedSize;
         }
         else if (hasDropShadow && GetPreserveShadow(element))
         {
             if (isButton && !isInItemsControl)
             {
-                // Samostatné tlačítko se stínem -> oddělené vrstvy
+                // Standalone button with shadow -> layered approach
                 return TiltStrategy.LayeredShadow;
             }
             else if (hasComplexContent)
             {
-                // Komplexní obsah -> kompenzovaný planerator
+                // Complex content -> compensated Planerator
                 return TiltStrategy.CompensatedPlanerator;
             }
         }
         else if (!hasDropShadow)
         {
-            // Bez stínu -> jednoduchý tilt
+            // No shadow -> simple tilt
             return TiltStrategy.NoShadow;
         }
 
-        // Default: oddělené vrstvy (nejbezpečnější)
+        // Default: layered approach (safest)
         return TiltStrategy.LayeredShadow;
     }
 
@@ -196,51 +196,51 @@ public static class SmartTiltBehavior
 
     private static void ApplyFixedSizeStrategy(FrameworkElement element)
     {
-        // Implementace Stack Overflow přístupu
+        // Implementation of the Stack Overflow approach
         if (double.IsNaN(element.Width) || double.IsNaN(element.Height))
         {
-            // Nastavit pevné rozměry podle ActualSize
+            // Set fixed dimensions based on ActualSize
             element.Width = element.ActualWidth > 0 ? element.ActualWidth : 100;
             element.Height = element.ActualHeight > 0 ? element.ActualHeight : 40;
         }
 
-        // Najít parent panel
+        // Find the parent panel
         var parent = element.Parent as Panel;
         if (parent == null) return;
 
-        // Zapamatovat si index a odpojit element z Visual tree, než ho použijeme jako Visual
+        // Remember the index and detach the element from the visual tree before using it as a Visual
         int index = parent.Children.IndexOf(element);
         parent.Children.Remove(element);
 
-        // Až teď vytvořit Viewport3D, který nastaví Visual = element
+        // Only now create the Viewport3D that sets Visual = element
         var viewport = CreateFixedSizeViewport3D(element);
 
-        // Vložit zpět na původní pozici
+        // Insert back at the original position
         parent.Children.Insert(index, viewport);
 
-        // Přidat event handlery
+        // Attach event handlers
         AttachTiltHandlers(viewport, element);
     }
 
     private static void ApplyLayeredShadowStrategy(FrameworkElement element)
     {
-        // Implementace oddělených vrstev
+        // Implementation of the layered approach
         var parent = element.Parent as Panel;
         if (parent == null) return;
 
-        // Uložit layout vlastnosti
+        // Preserve layout properties
         var width = element.Width;
         var height = element.Height;
         var hAlign = element.HorizontalAlignment;
         var vAlign = element.VerticalAlignment;
         var margin = element.Margin;
 
-        // Zapamatovat si index a odpojit element z původního parenta dříve,
-        // než ho přidáme do nového kontejneru
+        // Remember the index and detach the element from the original parent
+        // before adding it to the new container
         int index = parent.Children.IndexOf(element);
         parent.Children.Remove(element);
 
-        // Vytvořit Grid kontejner
+        // Create a Grid container
         var container = new Grid
         {
             Width = width,
@@ -250,14 +250,14 @@ public static class SmartTiltBehavior
             Margin = margin
         };
 
-        // Shadow layer (kopíruje tvar elementu)
+        // Shadow layer (mirrors the element's shape)
         var shadowBorder = new Border
         {
             Background = new SolidColorBrush(Colors.Black) { Opacity = 0.01 },
             CornerRadius = element is Border b ? b.CornerRadius : new CornerRadius(0)
         };
 
-        // Přesunout efekt na shadow layer
+        // Move the effect to the shadow layer
         if (element.Effect != null)
         {
             shadowBorder.Effect = element.Effect;
@@ -265,7 +265,7 @@ public static class SmartTiltBehavior
         }
         else
         {
-            // Výchozí stín
+            // Default shadow
             shadowBorder.Effect = new DropShadowEffect
             {
                 BlurRadius = 15,
@@ -276,33 +276,33 @@ public static class SmartTiltBehavior
             };
         }
 
-        // Přidat vrstvy do kontejneru
+        // Add layers to the container
         container.Children.Add(shadowBorder);
 
-        // Reset element properties pro správné zarovnání uvnitř kontejneru
+        // Reset element properties for proper alignment within the container
         element.Margin = new Thickness(0);
 
         container.Children.Add(element);
 
-        // Nahradit v parent na původní pozici
+        // Replace in the parent at the original position
         parent.Children.Insert(index, container);
 
-        // Aplikovat tilt pouze na content
+        // Apply tilt only to the content
         TiltEffect.SetIsEnabled(element, true);
         TiltEffect.SetTiltFactor(element, GetTiltFactor(container));
     }
 
     /*private static void ApplyFixedSizeStrategy(FrameworkElement element)
     {
-        // Implementace Stack Overflow přístupu
+        // Implementation of the Stack Overflow approach
         if (double.IsNaN(element.Width) || double.IsNaN(element.Height))
         {
-            // Nastavit pevné rozměry podle ActualSize
+            // Set fixed dimensions based on ActualSize
             element.Width = element.ActualWidth > 0 ? element.ActualWidth : 100;
             element.Height = element.ActualHeight > 0 ? element.ActualHeight : 40;
         }
 
-        // Zabalit do Viewport3D s pevnými rozměry
+        // Wrap in Viewport3D with fixed size
         var parent = element.Parent as Panel;
         if (parent == null) return;
 
@@ -311,17 +311,17 @@ public static class SmartTiltBehavior
         parent.Children.Remove(element);
         parent.Children.Insert(index, viewport);
 
-        // Přidat event handlery
+        // Attach event handlers
         AttachTiltHandlers(viewport, element);
     }
 
     private static void ApplyLayeredShadowStrategy(FrameworkElement element)
     {
-        // Implementace oddělených vrstev
+        // Implementation of the layered approach
         var parent = element.Parent as Panel;
         if (parent == null) return;
 
-        // Vytvořit Grid kontejner
+        // Create a Grid container
         var container = new Grid
         {
             Width = element.Width,
@@ -331,14 +331,14 @@ public static class SmartTiltBehavior
             Margin = element.Margin
         };
 
-        // Shadow layer (kopíruje tvar elementu)
+        // Shadow layer (mirrors the element's shape)
         var shadowBorder = new Border
         {
             Background = new SolidColorBrush(Colors.Black) { Opacity = 0.01 },
             CornerRadius = element is Border b ? b.CornerRadius : new CornerRadius(0)
         };
 
-        // Přesunout efekt na shadow layer
+        // Move the effect to the shadow layer
         if (element.Effect != null)
         {
             shadowBorder.Effect = element.Effect;
@@ -346,7 +346,7 @@ public static class SmartTiltBehavior
         }
         else
         {
-            // Výchozí stín
+            // Default shadow
             shadowBorder.Effect = new DropShadowEffect
             {
                 BlurRadius = 15,
@@ -357,45 +357,45 @@ public static class SmartTiltBehavior
             };
         }
 
-        // Přidat vrstvy do kontejneru
+        // Add layers to the container
         container.Children.Add(shadowBorder);
 
         // Reset element properties
         element.Margin = new Thickness(0);
         container.Children.Add(element);
 
-        // Nahradit v parent
+        // Replace in the parent
         int index = parent.Children.IndexOf(element);
         parent.Children.Remove(element);
         parent.Children.Insert(index, container);
 
-        // Aplikovat tilt pouze na content
+        // Apply tilt only to the content
         TiltEffect.SetIsEnabled(element, true);
         TiltEffect.SetTiltFactor(element, GetTiltFactor(container));
     }*/
 
     private static void ApplyCompensatedPlaneratorStrategy(FrameworkElement element)
     {
-        // Použít vylepšený Planerator s kompenzací
+        // Use an improved Planerator with compensation
         PlaneratorHelper.SetPlaceIn3D(element, false); // Reset
 
-        // Nastavit kompenzaci
+        // Configure compensation
         if (element.Effect is DropShadowEffect dropShadow)
         {
-            // Vypočítat kompenzační offset
+            // Calculate compensation offset
             double blurCompensation = dropShadow.BlurRadius / 2.0;
             PlaneratorHelper.SetOriginX(element, 0.5 - (blurCompensation / element.ActualWidth));
             PlaneratorHelper.SetOriginY(element, 0.5 - (blurCompensation / element.ActualHeight));
         }
 
-        // Aktivovat tilt
+        // Enable tilt
         TiltEffect.SetIsEnabled(element, true);
         TiltEffect.SetTiltFactor(element, GetTiltFactor(element));
     }
 
     private static void ApplyNoShadowStrategy(FrameworkElement element)
     {
-        // Odstranit efekt a použít standardní tilt
+        // Remove the effect and use the standard tilt
         element.Effect = null;
 
         TiltEffect.SetIsEnabled(element, true);
@@ -418,7 +418,7 @@ public static class SmartTiltBehavior
             ClipToBounds = false
         };
 
-        // Kamera
+        // Camera
         viewport.Camera = new PerspectiveCamera
         {
             Position = new Point3D(0, 0, 4),
@@ -436,7 +436,7 @@ public static class SmartTiltBehavior
         };
         visual3D.Material.SetValue(Viewport2DVisual3D.IsVisualHostMaterialProperty, true);
 
-        // Transform group pro animace
+        // Transform group for animations
         var transformGroup = new Transform3DGroup();
         transformGroup.Children.Add(new RotateTransform3D(
             new AxisAngleRotation3D(new Vector3D(1, 0, 0), 0))
@@ -448,7 +448,7 @@ public static class SmartTiltBehavior
 
         viewport.Children.Add(visual3D);
 
-        // Světlo
+        // Light
         viewport.Children.Add(new ModelVisual3D
         {
             Content = new DirectionalLight
@@ -510,16 +510,16 @@ public static class SmartTiltBehavior
 
             if (isPressed && mousePosition.HasValue)
             {
-                // Vypočítat tilt podle pozice myši
+                // Compute tilt based on mouse position
                 var pos = mousePosition.Value;
                 double normalizedX = (pos.X / viewport.Width - 0.5) * 2;
                 double normalizedY = (pos.Y / viewport.Height - 0.5) * 2;
 
-                targetY = normalizedX * 10; // Horizontální tilt
-                targetX = -normalizedY * 10; // Vertikální tilt
+                targetY = normalizedX * 10; // Horizontal tilt
+                targetX = -normalizedY * 10; // Vertical tilt
             }
 
-            // Animovat rotace
+            // Animate rotations
             if (group.Children[0] is RotateTransform3D rotX &&
                 rotX.Rotation is AxisAngleRotation3D angleX)
             {
@@ -544,14 +544,14 @@ public static class SmartTiltBehavior
 
     private static void RemoveSmartTilt(FrameworkElement element)
     {
-        // Odstranit event handlery a obnovit původní stav
+        // Remove event handlers and restore the original state
         TiltEffect.SetIsEnabled(element, false);
         PlaneratorHelper.SetPlaceIn3D(element, false);
 
-        // Pokud je element ve Viewport3D, extrahovat ho zpět
+        // If the element is inside a Viewport3D, extract it back
         if (element.Parent is Viewport2DVisual3D)
         {
-            // TODO: Implementovat extrakci z Viewport3D
+            // TODO: Implement extraction from Viewport3D
         }
     }
 

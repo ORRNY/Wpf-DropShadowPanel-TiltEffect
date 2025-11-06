@@ -1,5 +1,4 @@
-﻿using System;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -9,8 +8,8 @@ using System.Windows.Media.Media3D;
 namespace DropShadowPanel_TiltEffect.TiltEffectAnimation;
 
 /// <summary>
-/// Přímá implementace tilt efektu pomocí Viewport2DVisual3D bez Planeratoru.
-/// Řeší problém s DropShadowEffect pomocí pevných rozměrů a správné konfigurace kamery.
+/// Direct implementation of the tilt effect using Viewport2DVisual3D without a Planerator.
+/// Solves the DropShadowEffect issue by using fixed dimensions and proper camera configuration.
 /// </summary>
 public class DirectViewportTiltBehavior
 {
@@ -103,7 +102,7 @@ public class DirectViewportTiltBehavior
         element.PreviewMouseLeftButtonUp -= OnMouseUp;
         element.MouseLeave -= OnMouseLeave;
 
-        // Vyčistit 3D wrapper pokud existuje
+        // Clean up the 3D wrapper if it exists
         RemoveViewport3D(element);
     }
 
@@ -133,15 +132,15 @@ public class DirectViewportTiltBehavior
 
     private static void ApplyTilt(FrameworkElement element, Point position)
     {
-        // Získat nebo vytvořit Viewport3D wrapper
+        // Get or create the Viewport3D wrapper
         var viewport = GetOrCreateViewport3D(element);
         if (viewport == null) return;
 
-        // Najít Viewport2DVisual3D
+        // Find Viewport2DVisual3D
         var visual3D = FindViewport2DVisual3D(viewport);
         if (visual3D == null) return;
 
-        // Vypočítat úhly náklonu na základě pozice myši
+        // Compute tilt angles based on mouse position
         double width = element.ActualWidth > 0 ? element.ActualWidth : element.Width;
         double height = element.ActualHeight > 0 ? element.ActualHeight : element.Height;
 
@@ -149,15 +148,15 @@ public class DirectViewportTiltBehavior
 
         double tiltFactor = GetTiltFactor(element);
 
-        // Normalizovat pozici myši na rozsah -1 až 1
+        // Normalize mouse position to the range -1 to 1
         double normalizedX = (position.X / width - 0.5) * 2;
         double normalizedY = (position.Y / height - 0.5) * 2;
 
-        // Vypočítat úhly rotace
-        double rotationY = normalizedX * tiltFactor;  // Horizontální tilt
-        double rotationX = -normalizedY * tiltFactor; // Vertikální tilt
+        // Compute rotation angles
+        double rotationY = normalizedX * tiltFactor;  // Horizontal tilt
+        double rotationX = -normalizedY * tiltFactor; // Vertical tilt
 
-        // Animovat rotaci
+        // Animate the rotation
         AnimateRotation(visual3D, rotationX, rotationY, TimeSpan.FromMilliseconds(100));
     }
 
@@ -166,7 +165,7 @@ public class DirectViewportTiltBehavior
         var parent = element.Parent as Panel;
         if (parent == null) return;
 
-        // Najít Viewport3D ve stejném panelu
+        // Find the Viewport3D in the same panel
         Viewport3D viewport = null;
         foreach (var child in parent.Children)
         {
@@ -182,7 +181,7 @@ public class DirectViewportTiltBehavior
         var visual3D = FindViewport2DVisual3D(viewport);
         if (visual3D != null)
         {
-            // Animovat zpět na nulu
+            // Animate back to zero
             AnimateRotation(visual3D, 0, 0, TimeSpan.FromMilliseconds(200));
         }
     }
@@ -192,7 +191,7 @@ public class DirectViewportTiltBehavior
         var parent = element.Parent as Panel;
         if (parent == null) return null;
 
-        // Zkusit najít existující Viewport3D
+        // Try to find an existing Viewport3D
         foreach (var child in parent.Children)
         {
             if (child is Viewport3D viewport && viewport.Tag == element)
@@ -201,7 +200,7 @@ public class DirectViewportTiltBehavior
             }
         }
 
-        // Vytvořit nový Viewport3D wrapper
+        // Create a new Viewport3D wrapper
         return CreateViewport3DWrapper(element);
     }
 
@@ -210,22 +209,22 @@ public class DirectViewportTiltBehavior
         var parent = element.Parent as Panel;
         if (parent == null) return null;
 
-        // Získat rozměry
+        // Get dimensions
         double width = element.ActualWidth > 0 ? element.ActualWidth : element.Width;
         double height = element.ActualHeight > 0 ? element.ActualHeight : element.Height;
 
-        // Pokud UseFixedSize je true, použít pevné rozměry
+        // If UseFixedSize is true, apply fixed dimensions
         if (GetUseFixedSize(element))
         {
             if (double.IsNaN(element.Width)) element.Width = width;
             if (double.IsNaN(element.Height)) element.Height = height;
         }
 
-        // Odstranit element z parent
+        // Remove the element from the parent
         int index = parent.Children.IndexOf(element);
         parent.Children.Remove(element);
 
-        // Vytvořit Viewport3D
+        // Create Viewport3D
         var viewport3D = new Viewport3D
         {
             Tag = element,
@@ -237,7 +236,7 @@ public class DirectViewportTiltBehavior
             ClipToBounds = false
         };
 
-        // Nastavit kameru
+        // Configure the camera
         viewport3D.Camera = new PerspectiveCamera
         {
             Position = new Point3D(0, 0, 4),
@@ -246,17 +245,17 @@ public class DirectViewportTiltBehavior
             FieldOfView = 45
         };
 
-        // Vytvořit Viewport2DVisual3D
+        // Create Viewport2DVisual3D
         var viewport2DVisual3D = new Viewport2DVisual3D();
 
-        // Nastavit transformaci s kompozicí
+        // Set transform with composition
         var transform3DGroup = new Transform3DGroup();
 
-        // Rotace X (vertikální tilt)
+        // Rotation X (vertical tilt)
         var rotateX = new RotateTransform3D(
             new AxisAngleRotation3D(new Vector3D(1, 0, 0), 0));
 
-        // Rotace Y (horizontální tilt)
+        // Rotation Y (horizontal tilt)
         var rotateY = new RotateTransform3D(
             new AxisAngleRotation3D(new Vector3D(0, 1, 0), 0));
 
@@ -265,7 +264,7 @@ public class DirectViewportTiltBehavior
 
         viewport2DVisual3D.Transform = transform3DGroup;
 
-        // Nastavit geometrii (normalizovaný quad)
+        // Set geometry (normalized quad)
         viewport2DVisual3D.Geometry = new MeshGeometry3D
         {
             Positions = new Point3DCollection
@@ -285,10 +284,10 @@ public class DirectViewportTiltBehavior
             TriangleIndices = new Int32Collection { 0, 1, 2, 0, 2, 3 }
         };
 
-        // Nastavit vizuál
+        // Assign the visual
         viewport2DVisual3D.Visual = element;
 
-        // Nastavit materiál
+        // Set material
         viewport2DVisual3D.Material = new DiffuseMaterial
         {
             Brush = Brushes.White
@@ -296,10 +295,10 @@ public class DirectViewportTiltBehavior
         viewport2DVisual3D.Material.SetValue(
             Viewport2DVisual3D.IsVisualHostMaterialProperty, true);
 
-        // Přidat do viewport
+        // Add to the viewport
         viewport3D.Children.Add(viewport2DVisual3D);
 
-        // Přidat světlo
+        // Add a light
         var light = new ModelVisual3D
         {
             Content = new DirectionalLight
@@ -315,7 +314,7 @@ public class DirectViewportTiltBehavior
         element.HorizontalAlignment = HorizontalAlignment.Stretch;
         element.VerticalAlignment = VerticalAlignment.Stretch;
 
-        // Vložit viewport na původní pozici
+        // Insert the viewport at the original position
         parent.Children.Insert(index, viewport3D);
 
         return viewport3D;
@@ -326,11 +325,11 @@ public class DirectViewportTiltBehavior
         var parent = element.Parent as Panel;
         if (parent != null)
         {
-            // Element je stále v původním parent, není co dělat
+            // The element is still in its original parent; nothing to do
             return;
         }
 
-        // Hledat viewport který obsahuje element
+        // Find the viewport that hosts the element
         var viewport2D = VisualTreeHelper.GetParent(element) as Viewport2DVisual3D;
         if (viewport2D != null)
         {
@@ -340,11 +339,11 @@ public class DirectViewportTiltBehavior
                 parent = viewport3D.Parent as Panel;
                 if (parent != null)
                 {
-                    // Obnovit původní element
+                    // Restore the original element
                     int index = parent.Children.IndexOf(viewport3D);
                     parent.Children.Remove(viewport3D);
 
-                    // Obnovit původní vlastnosti
+                    // Restore original properties
                     element.Margin = viewport3D.Margin;
                     element.HorizontalAlignment = viewport3D.HorizontalAlignment;
                     element.VerticalAlignment = viewport3D.VerticalAlignment;
@@ -374,7 +373,7 @@ public class DirectViewportTiltBehavior
     {
         if (visual3D.Transform is Transform3DGroup group && group.Children.Count >= 2)
         {
-            // Animace rotace X
+            // Animate rotation X
             if (group.Children[0] is RotateTransform3D rotateXTransform &&
                 rotateXTransform.Rotation is AxisAngleRotation3D rotationXAxis)
             {
@@ -385,7 +384,7 @@ public class DirectViewportTiltBehavior
                 rotationXAxis.BeginAnimation(AxisAngleRotation3D.AngleProperty, animX);
             }
 
-            // Animace rotace Y
+            // Animate rotation Y
             if (group.Children[1] is RotateTransform3D rotateYTransform &&
                 rotateYTransform.Rotation is AxisAngleRotation3D rotationYAxis)
             {
